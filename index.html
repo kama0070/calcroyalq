@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mangusta Calculations</title>
+<style>
+h3{
+ text-align: center;
+}
+#results{
+ color: green;
+ font-weight: 400;
+ padding: 10px;
+ border: 2px solid red;
+}
+#fbia,#flc,#flcr{
+ color: green;
+ font-weight: 400;
+}
+</style>
+</head>
+<body>
+<hr>
+<h3>MANGUSTA CALCULATION</h3>
+<hr>
+<p>Starting Month value (in USDT) : <input id="smviu" type="textbox" placeholder="Enter your capital in USDT" value="3000"></p>
+<p>Remaining USDT in spot wallet : <input id="ruisw" type="textbox" placeholder="Enter your left USDT" value="3000"></p>
+<p>Your Target percentage per month : <input id="tppm" type="textbox" placeholder="Enter your target percentage for this month" value="12"></p>
+<p>Total number of coins : <input id="tnoc" type="textbox" placeholder="Enter your first buy in amount" value="10"></p>
+<p>Enter number of month : <input type="number" id="num_months">&nbsp;&nbsp;<button onclick="createTable()">Generate Table</button></p>
+<p><div id="tableContainer"></div></p>
+<div id="results">
+<p>First Buy in Amount : <span id="fbia"></span></p>
+<p>First Level Capital : <span id="flc"></span></p>
+<p>First Level Capital Required : <span id="flcr"></span></p>
+<p>Second Level Capital : <span id="slc"></span></p>
+<p>Second Level Capital Required : <span id="slcr"></span></p>
+<p>Third Level Capital : <span id="tlc"></span></p>
+<p>Third Level Capital Required : <span id="tlcr"></span></p>
+</div>
+<script>
+/* S4 */
+let minMarginCall = 10;
+/* S13 */
+let minFirstBuyInUSDT = 5;
+
+let firstLevel = 10;
+let secondLevel = 15;
+let thirdLevel = 20;
+let firstBuyInUSDT;
+
+function createTable() {
+    const numMonths = parseInt(document.getElementById("num_months").value);
+    if (isNaN(numMonths) || numMonths <= 0) {
+        alert("Please enter a valid number of months.");
+        return;
+    }
+
+    const tableContainer = document.getElementById("tableContainer");
+    tableContainer.innerHTML = ''; // Clear previous table
+
+    // Create table element
+    const table = document.createElement('table');
+    table.border = '1';
+
+    // Create table header row
+    const headerRow = table.insertRow();
+    const monthHeader = document.createElement('th');
+    monthHeader.textContent = 'Month';
+    headerRow.appendChild(monthHeader);
+    const column1Header = document.createElement('th');
+    column1Header.textContent = 'Column 1';
+    headerRow.appendChild(column1Header);
+    const column2Header = document.createElement('th');
+    column2Header.textContent = 'Column 2';
+    headerRow.appendChild(column2Header);
+
+    // Create table rows for each month
+    let totalColumn1 = 0;
+    let totalColumn2 = 0;
+    for (let i = 1; i <= numMonths; i++) {
+        const row = table.insertRow();
+        const monthCell = row.insertCell();
+        monthCell.textContent = 'Month ' + i;
+        const column1Cell = row.insertCell();
+        const column1Input = document.createElement('input');
+        column1Input.type = 'number';
+        column1Input.id = 'col1_' + i;
+        column1Input.addEventListener('input', calculateAvg);
+        column1Cell.appendChild(column1Input);
+        const column2Cell = row.insertCell();
+        const column2Input = document.createElement('input');
+        column2Input.type = 'number';
+        column2Input.id = 'col2_' + i;
+        column2Input.addEventListener('input', calculateAvg);
+        column2Cell.appendChild(column2Input);
+    }
+
+    // Create average row
+    const avgRow = table.insertRow();
+    const avgLabelCell = avgRow.insertCell();
+    avgLabelCell.textContent = 'Average';
+    const avgColumn1Cell = avgRow.insertCell();
+    avgColumn1Cell.id = 'avg_col1';
+    const avgColumn2Cell = avgRow.insertCell();
+    avgColumn2Cell.id = 'avg_col2';
+
+    // Append table to the container
+    tableContainer.appendChild(table);
+}
+
+function calculateAvg() {
+    let totalColumn1 = 0;
+    let totalColumn2 = 0;
+    let count = 0;
+
+    // Calculate total for Column 1 and Column 2
+    for (let i = 1; i <= parseInt(document.getElementById("num_months").value); i++) {
+        const col1Value = parseFloat(document.getElementById('col1_' + i).value) || 0;
+        totalColumn1 += col1Value;
+
+        const col2Value = parseFloat(document.getElementById('col2_' + i).value) || 0;
+        totalColumn2 += col2Value;
+
+        count++;
+    }
+
+    // Calculate average
+    const avgColumn1 = totalColumn1 / count;
+    const avgColumn2 = totalColumn2 / count;
+
+    // Update average cells with precision up to 2 decimal places
+    document.getElementById('avg_col1').textContent = avgColumn1;
+    document.getElementById('avg_col2').textContent = avgColumn2;
+}
+
+function calc1() {
+let currentCapital = document.getElementById("smviu").value;
+let targetProfitPercentage = document.getElementById("tppm").value;
+let remainingUSDT = document.getElementById("ruisw").value;
+let totalNumberOfCoins = document.getElementById("tnoc").value;
+/* W4 */
+let monthlyTargetInUSDT = currentCapital * (targetProfitPercentage / 100) * 0.8;
+/* S15 - performance avg*/
+let targetProiftPerdayInUSDT = monthlyTargetInUSDT / 31;
+/* M22 */
+let avgTotalMonthlyReturnInUSDT = document.getElementById('avg_col1')? parseFloat(document.getElementById('avg_col1').innerHTML) : 0;
+/* N22 */
+let avgTotalMonthlyReturnInPercentage = document.getElementById('avg_col2')? parseFloat(document.getElementById('avg_col2').innerHTML) : 0;
+/* S24 */
+let profitPerDayToMonthRatio = targetProiftPerdayInUSDT / avgTotalMonthlyReturnInUSDT;
+
+/* S17 */
+let marginForACall = minMarginCall * totalNumberOfCoins;
+
+let firstLevelCapital = marginForACall * firstLevel;
+let secondLevelCapital = marginForACall * secondLevel;
+let thirdLevelCapital = marginForACall * thirdLevel;
+
+/* Mid between first and second level margin */
+let capitalRequired = ((firstLevelCapital + secondLevelCapital)/2) * 0.95;
+/* S29 */
+let capitalLiquityRatio = capitalRequired / remainingUSDT;
+
+if(minMarginCall * profitPerDayToMonthRatio / capitalLiquityRatio < minFirstBuyInUSDT){
+	firstBuyInUSDT = minFirstBuyInUSDT;
+} else {
+	firstBuyInUSDT = minMarginCall * profitPerDayToMonthRatio / capitalLiquityRatio;
+}
+
+/* T17 */
+let oneMarginCall = firstBuyInUSDT * totalNumberOfCoins;
+/* V17 */
+let midLevelRatio = (oneMarginCall * secondLevel) / (marginForACall * secondLevel);
+
+let firstLevelCapitalRequired = marginForACall * firstLevel * midLevelRatio;
+let secondLevelCapitalRequired =  marginForACall * secondLevel * midLevelRatio;
+let thirdLevelCapitalRequired =  marginForACall * thirdLevel * midLevelRatio;
+
+console.log(firstBuyInUSDT, firstLevelCapitalRequired, secondLevelCapitalRequired, thirdLevelCapitalRequired);
+document.getElementById('fbia').innerHTML = document.getElementById('fbia')? firstBuyInUSDT : 0;
+document.getElementById('flc').innerHTML = document.getElementById('flc')? firstLevelCapital : 0;
+document.getElementById('flcr').innerHTML = document.getElementById('flcr')? firstLevelCapitalRequired : 0;
+document.getElementById('slc').innerHTML = document.getElementById('slc')? secondLevelCapital : 0;
+document.getElementById('slcr').innerHTML = document.getElementById('slcr')? secondLevelCapitalRequired : 0;
+document.getElementById('tlc').innerHTML = document.getElementById('tlc')? thirdLevelCapital : 0;
+document.getElementById('tlcr').innerHTML = document.getElementById('tlcr')? thirdLevelCapitalRequired : 0;
+}
+
+document.addEventListener('click',calc1);
+document.addEventListener('keyup',calc1);
+document.addEventListener('change',calc1);
+</script>
+
+</body>
+</html>
